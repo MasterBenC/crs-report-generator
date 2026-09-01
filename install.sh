@@ -31,4 +31,4 @@ fi
 
 echo "✅ 已安装到: $DEST"
 echo "   依赖: pip install pdfplumber openpyxl"
-echo "   之后在对话里说「帮我处理这份券商流水，生成 CRS 申报表」即可使用。"
+echo "   之后在对话里说「帮我算一下海外账户今年大概要补多少税」即可使用。"
