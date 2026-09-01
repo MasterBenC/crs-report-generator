@@ -30,6 +30,7 @@ class MatchedSale:
     proceeds: float
     cost: float
     gain: float
+    year: int | None = None
 
 
 @dataclass
@@ -38,3 +39,17 @@ class UnmatchedSale:
     qty: float
     proceeds: float
     estimated_cost: float | None = None
+
+
+@dataclass
+class IncomeItem:
+    kind: str
+    amount: float
+    year: int
+
+
+@dataclass
+class OffsetResult:
+    transfer_net: float
+    dividend_net: float
+    interest_net: float = 0
