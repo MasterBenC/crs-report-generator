@@ -1,68 +1,30 @@
 ---
 name: crs-report-generator
-description: "从银行/券商PDF流水自动提取信息，生成美化的CRS金融账户信息申报表。支持华泰、富途、盈透等多券商自动识别，多币种汇总，Excel标准格式输出。"
+description: Use when a client needs to estimate China individual income tax on overseas brokerage or bank statements, prepare documents for the tax bureau, or offset annual stock gains and losses from local agent chats such as WorkBuddy or 豆包 Work.
 ---
 
-# CRS 申报表生成工具 v3.0
+# 境外投资补税测算
 
-## 功能
+在 WorkBuddy / 豆包 Work 这类本地 Agent 里，用白话问询收集必要信息，读取全年券商结单，从数据表匹配买入成本，做年内盈亏互抵，然后告诉客户大概要补多少税、给税局准备什么。
 
-- 📄 **多券商自动识别** — 华泰(HTSC)、富途(Futu)、盈透(IBKR)、辉立(Phillip)
-- 📊 **CRS 标准 Excel** — 含账户持有人/金融机构/余额/收入四个板块
-- 👤 **客户信息提取** — 姓名、账号、地址、账户类型
-- 💰 **多币种汇总** — HKD、USD、CNH、JPY 等，自动换算港币等值
-- 🏷️ **持仓明细** — 股票、基金、债券分类列出
-- 🔍 **原始数据留存** — 第三页保留完整 JSON，供人工核查
+这是测算底稿，不是税务意见。
 
-## 使用方式
+## 问询
 
-```
-用户: 帮我处理这个券商流水，生成 CRS 申报表
-助手: 收到。请上传 PDF。
+一次只问一句，按 [references/interview.md](references/interview.md)：
 
-用户: [上传 PDF]
-助手: ✅ 已识别：华泰金融控股（香港）
-     客户：张三 | 账号：0123456789 | 日期：2023-06-05
-     总资产 HKD：1,764,957.30
-     
-     以下信息需要补充：
-     - 客户身份证号 (TIN)
-     - 出生日期
-     - 英文姓名
+1. 算哪一年
+2. 这一年主要住哪儿；不清楚再问住满半年没有、家里是否还在国内
+3. 钱放在哪几家
+4. 把能找到的结单都传上来
+5. 有没有分红、利息或外国扣过税
 
-用户: TIN: 440xxx | 出生: 1990-01-01 | 英文: Zhang San
-助手: ✅ CRS 申报表已生成。MEDIA:/tmp/CRS_张三_2023-01-01.xlsx
-```
+禁止问税收居民、TIN、身份证号、买入价、金融机构编号。身份证只提示客户自己带去税局或交给中介。
 
-## 命令行用法
+## 计算
 
-```bash
-python3 scripts/crs_generator.py 券商结单.pdf -o 输出.xlsx
-python3 scripts/crs_generator.py 券商结单.pdf --json  # 只看提取数据
-python3 scripts/crs_generator.py 券商结单.pdf \
-    --client-name-en "Zhang San" \
-    --tin "440xxxxxxxxxxxxxxx" \
-    --dob "1990-01-01"
-```
+买入价只从结单数据表读取，规则见 [references/matching.md](references/matching.md)。配不上的卖出整笔暂不算。分红和利息不能被亏损冲掉。
 
-## 支持的券商
+## 输出
 
-| 券商 | 识别关键词 | 支持状态 |
-|------|-----------|---------|
-| 华泰(HTSC) | 华泰金融控股、B01829 | ✅ 完成 |
-| 富途(Futu) | 富途证券、futunn | 🔜 待适配 |
-| 盈透(IBKR) | Interactive Brokers | 🔜 待适配 |
-| 辉立(Phillip) | 辉立证券 | 🔜 待适配 |
-
-## 注意事项
-
-1. PDF 需要是**文本类型**（非图片扫描），大多数券商月结单都是文本 PDF
-2. TIN、出生日期等个人信息**不会自动提取**（PDF 里通常没有），需手动补充
-3. 生成的表格**仅供参考**，实际申报需专业税务顾问审核
-4. 收入信息（股息/利息/卖出收益）需汇总**全年**结单，单份结单只能提取资产快照
-
-## 已知局限
-
-- **持仓明细**：多行名称的基金/股票可能未被合并解析。华泰结单中基金名跨两行时，第二行的名称片段会被丢弃。需后续修复。
-- **完整净收益**：单份日结单只能计算同日买卖的参考价差。真正的资本利得需要匹配对应批次的买入成本基准，这需要串联多份结单。
-- **净收益 = 卖出金额 - 对应买入成本**。单日结单只统计卖出总金额和买入总支出，不做跨日成本匹配。
+默认只给客户四块：大概要补多少钱、这钱是怎么来的、还缺哪些单子、给税局准备什么。材料建议见 [references/documents.md](references/documents.md)。测算口径见 [references/tax-estimate.md](references/tax-estimate.md)。
