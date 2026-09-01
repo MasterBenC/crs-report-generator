@@ -53,3 +53,5 @@ class OffsetResult:
     transfer_net: float
     dividend_net: float
     interest_net: float = 0
+    dividend_tax: float = 0
+    transfer_tax: float = 0
