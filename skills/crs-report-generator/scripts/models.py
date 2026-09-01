@@ -20,3 +20,21 @@ class Gap:
     kind: str
     trade: Trade
     message: str
+
+
+@dataclass
+class MatchedSale:
+    sale: Trade
+    buy: Trade
+    qty: float
+    proceeds: float
+    cost: float
+    gain: float
+
+
+@dataclass
+class UnmatchedSale:
+    sale: Trade
+    qty: float
+    proceeds: float
+    estimated_cost: float | None = None
