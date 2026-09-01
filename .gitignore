@@ -3,3 +3,8 @@ __pycache__/
 .pytest_cache/
 *.pyc
 _tmp_crs_generator.py
+
+_upstream_crs/
+_tmp_crs_generator.py
+.superpowers/
+
