@@ -37,7 +37,7 @@ description: Use when a client needs to estimate China individual income tax on 
 
 ## 计算
 
-1. 识别券商，能用模板就用模板；华泰已有模板，其他券商走通用提取。
+1. 识别券商，能用模板就用模板；华泰已有模板，其他券商走通用提取。解析只产出交易和余额，不生成看起来像官方申报表的 Excel。
 2. 从结单数据表抽出买入、卖出、分红、利息。买入价只从单子读取，规则见 [references/matching.md](references/matching.md)。
 3. 同一证券用更早的买入匹配卖出。配不上的卖出整笔暂不算，标成还缺买入记录。
 4. 分红和利息单独算，不能被亏损冲掉。已匹配卖出按年内盈亏互抵；互抵后为负则这一块按 0。口径见 [references/tax-estimate.md](references/tax-estimate.md)。
@@ -53,6 +53,6 @@ description: Use when a client needs to estimate China individual income tax on 
 3. 还缺哪些单子。缺了哪些卖出会先不算。
 4. 给税局准备什么。见 [references/documents.md](references/documents.md)。
 
-顾问需要时再展开匹配过程、互抵过程和原始提取。那些不交给税局。
+顾问需要时再展开匹配过程、互抵过程和原始提取。那些不交给税局。不要输出 CRS 申报表、官方表格或带有固定税务居民身份的合规文件。
 
 所有结果都写明：这是测算底稿，正式申报前需要人工审核。
