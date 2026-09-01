@@ -10,27 +10,16 @@ import json
 from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
-from collections import defaultdict
 
 try:
     import pdfplumber
-except ImportError:
-    print("Installing pdfplumber...")
-    import subprocess
-    subprocess.run([sys.executable, "-m", "pip", "install", "pdfplumber", "-q"])
-    import pdfplumber
-
-try:
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, Border, Side, PatternFill, numbers
     from openpyxl.utils import get_column_letter
-except ImportError:
-    print("Installing openpyxl...")
-    import subprocess
-    subprocess.run([sys.executable, "-m", "pip", "install", "openpyxl", "-q"])
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill, numbers
-    from openpyxl.utils import get_column_letter
+except ImportError as exc:
+    raise SystemExit(
+        "Missing dependency. Install the pinned packages listed in requirements.txt before running this script."
+    ) from exc
 
 
 class BrokerDetector:
