@@ -1,6 +1,12 @@
 ---
 name: crs-report-generator
+slug: crs-report-generator
+version: 3.0.2
+displayName: 境外投资补税测算
 description: Use when a client needs to estimate China individual income tax on overseas brokerage or bank statements, prepare documents for the tax bureau, or offset annual stock gains and losses from local agent chats such as WorkBuddy or 豆包 Work.
+summary: 从境外券商或银行结单测算中国个人所得税补税金额，并列出给税局的材料。不是 CRS 官方申报表。
+homepage: https://github.com/MasterBenC/crs-report-generator
+license: MIT
 ---
 
 # 境外投资补税测算
