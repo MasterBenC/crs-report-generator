@@ -21,7 +21,7 @@ DEST="$TARGET/crs-report-generator"
 
 # 安全复制（rsync 优先；无则用 cp -r，先清理已有的 __pycache__）
 if command -v rsync >/dev/null 2>&1; then
-    rsync -a --exclude='__pycache__' --exclude='*.pyc' "$SRC_DIR/" "$DEST/"
+    rsync -a --delete --exclude='__pycache__' --exclude='*.pyc' "$SRC_DIR/" "$DEST/"
 else
     rm -rf "$DEST"
     cp -r "$SRC_DIR" "$DEST"
@@ -30,5 +30,5 @@ else
 fi
 
 echo "✅ 已安装到: $DEST"
-echo "   依赖: pip install pdfplumber openpyxl"
+echo "   依赖: pip install -r \"$DEST/requirements.txt\""
 echo "   之后在对话里说「帮我算一下海外账户今年大概要补多少税」即可使用。"

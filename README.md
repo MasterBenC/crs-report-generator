@@ -39,6 +39,8 @@
 买入价只从结单、成交表、资金变动、持仓变动里读取。不让客户回忆，也不用现价或均价去估。
 
 - 分红、利息单独算，不能用亏损冲掉
+- 外国已经扣过的税按类别抵免，每类最多抵到这类所得按 20% 算出的税额
+- 不同币种不直接相加：有汇率先折成人民币，没有就按原币种分列
 - 已经卖掉的股票、基金，先配上买入记录，再在同一年里盈亏互抵
 - 没卖掉的浮盈浮亏不算
 - 配不上买入记录的卖出，整笔先不算进确定税额，并写进缺材料清单
@@ -65,10 +67,10 @@ bash install.sh ~/.claude/skills
 bash install.sh ~/.codex/skills
 ```
 
-依赖：
+依赖只有 `pdfplumber` 和 `pytest`（版本见 `requirements.txt`），请提前装好；脚本运行时不会自动安装任何包：
 
 ```bash
-pip install pdfplumber openpyxl pytest
+pip install -r skills/crs-report-generator/requirements.txt
 ```
 
 装好后，在对话里说：
@@ -76,6 +78,20 @@ pip install pdfplumber openpyxl pytest
 > 帮我算一下海外账户今年大概要补多少税，我把结单发给你。
 
 不要再说“生成 CRS 申报表”。
+
+## 命令行
+
+在 `skills/crs-report-generator` 目录下：
+
+```bash
+python3 -m scripts.cli --year 2024 statements/*.pdf
+python3 -m scripts.cli --year 2024 --fx-rates HKD=0.92,USD=7.20 --format json trades.json
+```
+
+- `--year` 必填，只统计这一年的卖出和分红利息；更早的买入只用来配成本。
+- `--fx-rates` 可选，JSON 文件或 `HKD=0.92,USD=7.20`。不给汇率时按原币种分列，不同币种不相加；汇率表缺某个币种时，那部分单列。
+- `--format markdown|json`，`--output` 写文件。
+- 输入可以是华泰 PDF、`crs_generator.py` 的解析 JSON，或 `trades` / `income` 结构化 JSON，字段见 SKILL.md。
 
 ## 给顾问看的底稿
 
@@ -91,7 +107,7 @@ pip install pdfplumber openpyxl pytest
 ## 测试
 
 ```bash
-pytest tests -v
+pytest -v
 ```
 
 仓库里只用合成数据，不要提交真实客户结单。

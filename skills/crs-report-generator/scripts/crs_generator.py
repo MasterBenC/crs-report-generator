@@ -18,6 +18,84 @@ except ImportError as exc:
     ) from exc
 
 
+EMPTY_AMOUNTS = {"", "-", "--", "—", "N/A", "n/a"}
+CURRENCY_CODES = ("HKD", "USD", "CNH", "CNY", "JPY", "EUR", "GBP", "SGD", "AUD", "CAD")
+WITHHOLDING_KEYWORDS = ("预扣税", "代扣税", "股息税", "扣税", "WITHHOLDING", "W/H TAX")
+DIVIDEND_KEYWORDS = ("现金股息", "股息", "红利", "派息", "分红", "DIVIDEND")
+
+
+def parse_amount(text):
+    """把结单里的金额文本转成 float。
+
+    "-"、"—"、空串、None 返回 None（结单上表示没有数），不会 float("") 崩溃。
+    支持千分位、括号负数 (1,234.00) 和尾随负号 1,234.00-。
+    """
+    if text is None:
+        return None
+    clean = str(text).strip().replace(",", "")
+    if clean in EMPTY_AMOUNTS:
+        return None
+    negative = False
+    if clean.startswith("(") and clean.endswith(")"):
+        negative, clean = True, clean[1:-1].strip()
+    if clean.endswith("-") and len(clean) > 1:
+        negative, clean = True, clean[:-1]
+    if clean.startswith("-"):
+        negative, clean = not negative, clean[1:]
+    if clean in EMPTY_AMOUNTS:
+        return None
+    try:
+        value = float(clean)
+    except ValueError:
+        return None
+    return -value if negative else value
+
+
+def parse_income_line(line):
+    """从户口变动的一行里识别分红或境外预扣税；认不出返回 None，不臆造数据。"""
+    upper = line.upper()
+    if any(kw in upper for kw in WITHHOLDING_KEYWORDS):
+        kind = "withholding_tax"
+    elif any(kw in upper for kw in DIVIDEND_KEYWORDS):
+        kind = "dividend"
+    else:
+        return None
+    if "买卖交易" in line:
+        return None
+    dates = re.findall(r"\d{4}-\d{2}-\d{2}", line)
+    if not dates:
+        return None
+    ref = re.match(r"\s*(\d{10})\s", line)
+    currency = None
+    m = re.search(r"\b(" + "|".join(CURRENCY_CODES) + r")\b", line)
+    if m:
+        currency = m.group(1)
+    product = None
+    m = re.search(r"\b(\d{5}|[A-Z]{1,5}(?:\.[A-Z])?)(?::(?:US|HK))\b", line) or re.search(r"(?<![\d.,])(\d{5})(?![\d.,])", line)
+    if m:
+        product = m.group(1)
+    # 去掉单据号、日期和“每股 xx”之类的比率，剩下带小数的数字：倒数第二个是金额，最后一个是结余
+    rest = line[ref.end():] if ref else line
+    rest = re.sub(r"\d{4}-\d{2}-\d{2}", " ", rest)
+    rest = re.sub(r"\S*/\S*", " ", rest)
+    numbers = re.findall(r"\(?-?[\d,]*\d\.\d+\)?-?", rest)
+    if not numbers:
+        return None
+    raw = numbers[-2] if len(numbers) >= 2 else numbers[-1]
+    amount = parse_amount(raw)
+    if amount is None:
+        return None
+    return {
+        "kind": kind,
+        "ref_no": ref.group(1) if ref else None,
+        "date": dates[0],
+        "product": product,
+        "currency": currency,
+        "amount": abs(amount),
+        "raw": line.strip(),
+    }
+
+
 class BrokerDetector:
     """Auto-detect broker from PDF content."""
 
@@ -77,6 +155,8 @@ class HTSCParser:
             "total_value_hkd": None,
             "transactions": [],
             "fees": {},
+            "dividends": [],
+            "withholding_taxes": [],
         }
 
         lines = text.split("\n")
@@ -143,7 +223,7 @@ class HTSCParser:
             )
             if m:
                 cash = float(m.group(1).replace(",", ""))
-                net = float(m.group(3).replace(",", "").replace("-", ""))
+                net = parse_amount(m.group(3))
                 stocks = float(m.group(4).replace(",", ""))
                 fund = float(m.group(6).replace(",", ""))
                 total = float(m.group(8).replace(",", ""))
@@ -160,7 +240,7 @@ class HTSCParser:
             )
             if m:
                 cash = float(m.group(1).replace(",", ""))
-                net = float(m.group(3).replace(",", "").replace("-", ""))
+                net = parse_amount(m.group(3))
                 stocks = float(m.group(4).replace(",", ""))
                 fund = float(m.group(6).replace(",", ""))
                 total = float(m.group(8).replace(",", ""))
@@ -303,7 +383,7 @@ class HTSCParser:
                     product = m.group(6).strip().rstrip(":")
                     price = float(m.group(7).replace(",", ""))
                     qty = int(m.group(8).replace(",", ""))
-                    amount = float(m.group(9).replace(",", ""))
+                    amount = parse_amount(m.group(9))
                     data["transactions"].append({
                         "ref_no": ref_no,
                         "settlement_date": settlement_date,
@@ -315,6 +395,12 @@ class HTSCParser:
                         "quantity": qty,
                         "amount": amount,
                     })
+                    continue
+                income = parse_income_line(line)
+                if income:
+                    kind = income.pop("kind")
+                    target = "withholding_taxes" if kind == "withholding_tax" else "dividends"
+                    data[target].append(income)
                 continue
 
             # ---- Parse 成交单据 format ----
@@ -339,7 +425,7 @@ class HTSCParser:
                     for j in range(i+1, min(i+8, len(lines))):
                         nm = re.search(r"净金额\s+\(?([\d,\-]+\.?\d*)\)?", lines[j])
                         if nm:
-                            net_amount = float(nm.group(1).replace(",", ""))
+                            net_amount = parse_amount(nm.group(1))
                             break
                     data["transactions"].append({
                         "ref_no": ref_no,
